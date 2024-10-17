@@ -1,0 +1,70 @@
+import sys
+import traceback
+
+class SimpleDebugger:
+    def __init__(self):
+        self.breakpoints = set()
+        self.current_line = 0
+        self.running = True
+        self.context = {}
+
+    def set_breakpoint(self, line):
+        self.breakpoints.add(line)
+        print(f"Breakpoint set at line {line}")
+
+    def remove_breakpoint(self, line):
+        if line in self.breakpoints:
+            self.breakpoints.remove(line)
+            print(f"Breakpoint removed at line {line}")
+        else:
+            print(f"No breakpoint at line {line}")
+
+    def debug(self, frame, event, arg):
+        if event == "line":
+            self.current_line = frame.f_lineno
+            self.context = frame.f_locals
+
+            if self.current_line in self.breakpoints:
+                print(f"\nBreakpoint hit at line {self.current_line}")
+                self.interact()
+
+        return self.debug
+
+    def interact(self):
+        while True:
+            command = input("(debugger) ")
+            if command == "c":  # Continue execution
+                print("Continuing...")
+                break
+            elif command == "q":  # Quit the debugger
+                self.running = False
+                break
+            elif command.startswith("p "):  # Print a variable
+                _, var = command.split(" ", 1)
+                if var in self.context:
+                    print(f"{var} = {self.context[var]}")
+                else:
+                    print(f"{var} not found in the current context")
+            elif command == "bt":  # Print backtrace
+                print("Stack trace:")
+                traceback.print_stack(sys._getframe())
+            else:
+                print("Unknown command. Commands: c (continue), p <var> (print), q (quit), bt (backtrace)")
+
+    def run(self, code):
+        sys.settrace(self.debug)
+        exec(code, {}, {})
+        sys.settrace(None)
+
+# Example usage
+if __name__ == "__main__":
+    code = """
+x = 10
+y = 20
+z = x + y
+print(z)
+    """
+    
+    debugger = SimpleDebugger()
+    debugger.set_breakpoint(3)  # Set a breakpoint at line 3 (the `z = x + y` line)
+    debugger.run(code)
